@@ -419,14 +419,16 @@ header   { animation: fadeUp 0.5s ease both; }
       <span class="b">♣</span>
     </div>
     <h1>Card<em>Code</em></h1>
-    <p class="tagline">A programming language written with playing cards.</p>
+    <p class="tagline">A programming language written with playing cards.
+    </p>
+
     <div class="header-links">
-      <a class="btn primary" href="https://github.com/YOUR_USERNAME/cardcode">View on GitHub</a>
+      <a class="btn primary" href="https://github.com/lucasceurty/card-code-programming-language">View on GitHub</a>
       <a class="btn" href="#try">Try it</a>
       <a class="btn" href="#mapping">Card Map</a>
     </div>
+    <h2>By Lucas Ceurty</h2>
   </header>
-
   <!-- ── What is it ── -->
   <section class="section">
     <h2><span class="num">01 —</span> What is CardCode?</h2>
@@ -506,7 +508,7 @@ header   { animation: fadeUp 0.5s ease both; }
     <hr>
 
     <h3>Install &amp; run</h3>
-    <pre><code>git clone https://github.com/YOUR_USERNAME/cardcode
+    <pre><code>git clone https://github.com/lucasceurty/card-code-programming-language
 cd cardcode
 pip install -r requirements.txt
 python app.py</code></pre>
@@ -601,16 +603,6 @@ JS  →  CONCAT      (pop two strings, push joined string)
 JD  →  NUM_TO_STR  (pop integer, push as string)
 JC  →  PRINT_STR   (pop string, print it)
 QC  →  PRINT_NUM   (pop integer, print it)</code></pre>
-
-    <div class="screenshot">
-      <img src="images/card_map.png" alt="Visual card map"
-           onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-      <div class="screenshot-placeholder" style="display:none">
-        <div class="icon">🗺</div>
-        <div>card_map.png</div>
-      </div>
-      <div class="screenshot-caption">Full card-to-token reference sheet.</div>
-    </div>
   </section>
 
   <hr>
@@ -680,21 +672,6 @@ QC  →  PRINT_NUM   (pop integer, print it)</code></pre>
   <!-- ── FizzBuzz ── -->
   <section class="section" id="fizzbuzz">
     <h2><span class="num">06 —</span> FizzBuzz</h2>
-    <p>
-      The canonical CardCode challenge. Lay out 25 rows of cards — the first
-      eight build "Fizz" and "Buzz" from ASCII, the remainder implement the
-      loop and conditional logic.
-    </p>
-
-    <div class="screenshot">
-      <img src="images/fizzbuzz_cards.png" alt="FizzBuzz card layout"
-           onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-      <div class="screenshot-placeholder" style="display:none">
-        <div class="icon">♥♠♦♣</div>
-        <div>fizzbuzz_cards.png</div>
-      </div>
-      <div class="screenshot-caption">The full FizzBuzz program laid out as physical cards.</div>
-    </div>
 
     <pre><code># Build "Fizz" → stored in Str register A
 10H 7H 3S JH
@@ -734,7 +711,7 @@ QC  →  PRINT_NUM   (pop integer, print it)</code></pre>
     "The suits are the syntax.<br>The deck is the program.<br>The table is the IDE."
   </blockquote>
 
-  <a class="btn primary" href="https://github.com/YOUR_USERNAME/cardcode">
+  <a class="btn primary" href="https://github.com/lucasceurty/card-code-programming-language">
     ♠ View on GitHub
   </a>
 
@@ -742,7 +719,7 @@ QC  →  PRINT_NUM   (pop integer, print it)</code></pre>
   <footer>
     <span>CardCode — a card-based esolang</span>
     <span>
-      <a href="https://github.com/YOUR_USERNAME/cardcode">github</a>
+      <a href="https://github.com/lucasceurty/card-code-programming-language">github</a>
     </span>
   </footer>
 

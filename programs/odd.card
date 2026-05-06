@@ -1,0 +1,24 @@
+# CardCode Program
+# Generated: 2026-05-05T21:41:41.118127
+# Lines: 5  Tokens: 15
+
+10H 5H AS AD
+2D 2H 4S QH 5S 7S 3D
+2D QC
+5D
+5D
+
+# ── Generated Python ───────────────────────────────────
+# for _ctr in range(1, ((10 + 5)) + 1):
+#     if (not ((_ctr % 2) == 0)):
+#         print(_ctr)
+
+# ── Output ─────────────────────────────────────────────
+# 1
+# 3
+# 5
+# 7
+# 9
+# 11
+# 13
+# 15

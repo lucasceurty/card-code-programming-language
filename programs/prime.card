@@ -1,0 +1,42 @@
+# CardCode Program
+# Generated: 2026-05-05T21:44:12.881236
+# Lines: 18  Tokens: 92
+
+10H 10H AS 10H AS AD
+2D 1H EQ 7S 3D
+1H AC
+2D 1H SUB AD
+2D 1H EQ 7S 3D
+2D 2D
+QH AC
+5D
+5D
+5D
+3C 1H EQ 3D
+2D QC
+5D
+5D
+5D
+
+# ── Generated Python ───────────────────────────────────
+# for _ctr in range(1, 31):
+#     if _ctr != 1:
+#         _reg_a = 1
+#         for _div in range(1, _ctr):
+#             if _div > 1:
+#                 if _ctr % _div == 0:
+#                     _reg_a = 0
+#         if _reg_a == 1:
+#             print(_ctr)
+
+# ── Output ─────────────────────────────────────────────
+# 2
+# 3
+# 5
+# 7
+# 11
+# 13
+# 17
+# 19
+# 23
+# 29

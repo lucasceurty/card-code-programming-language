@@ -1,0 +1,33 @@
+# CardCode Program
+# Generated: 2026-05-05T21:38:15.123456
+# Lines: 20  Tokens: 76
+
+7H 10H 3S 2H AS JH
+10H 10H 3S 1H AS JH JS
+10H 10H AS 8H 3S 2H AS JH JS
+8S JS
+10H 10H AS 1H AS 10H 3S 1H AS JH JS
+3H 10H 3S 2H AS JH JS
+8H 10H 3S 7H AS JH JS
+10H 10H AS 1H AS 10H 3S 1H AS JH JS
+10H 10H AS 1H AS 10H 3S 4H AS JH JS
+10H 10H AS 8H 3S 2H AS JH JS
+10H 10H 3S AS JH JS
+JC
+
+# ── Generated Python ───────────────────────────────────
+# _temp_str = chr((7 * 10) + 2)
+# _temp_str = (_temp_str + chr(((10 * 10) * 1) + 1))
+# _temp_str = (_temp_str + chr((((10 + 10) * 8) + 2)))
+# _temp_str = (_temp_str + _temp_str[-1])
+# _temp_str = (_temp_str + chr((((10 + 10) + 1) * 10) + 1))
+# _temp_str = (_temp_str + chr((3 * 10) + 2))
+# _temp_str = (_temp_str + chr((8 * 10) + 7))
+# _temp_str = (_temp_str + chr((((10 + 10) + 1) * 10) + 1))
+# _temp_str = (_temp_str + chr((((10 + 10) + 1) * 10) + 4))
+# _temp_str = (_temp_str + chr((((10 + 10) * 8) + 2)))
+# _temp_str = (_temp_str + chr((10 * 10)))
+# print(_temp_str)
+
+# ── Output ─────────────────────────────────────────────
+# Hello World
