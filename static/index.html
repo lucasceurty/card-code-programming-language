@@ -1,0 +1,1497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CardCode — Card-Based Programming</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --font-ui: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'SF Mono', Consolas, monospace;
+    --bg:        #0c0f14;
+    --surface:   #131720;
+    --panel:     #1a1f2e;
+    --border:    #252d40;
+    --text:      #e8eaf0;
+    --muted:     #6b7592;
+    --heart:     #e63950;
+    --spade:     #c8d0e8;
+    --diamond:   #4fc3f7;
+    --club:      #69f0ae;
+    --gold:      #f5c842;
+    --glow-r:    rgba(230, 57, 80, 0.35);
+    --glow-b:    rgba(79, 195, 247, 0.3);
+    --glow-g:    rgba(105, 240, 174, 0.3);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-ui);
+    min-height: 100vh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* ── Noise texture overlay ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 0;
+  }
+
+  /* ── Header ── */
+  header {
+    position: relative; z-index: 10;
+    display: flex; align-items: center; gap: 1.5rem;
+    padding: 1.4rem 2rem;
+    border-bottom: 1px solid var(--border);
+    background: rgba(19, 23, 32, 0.92);
+    backdrop-filter: blur(12px);
+  }
+
+  .logo {
+    display: flex; align-items: center; gap: 0.75rem;
+  }
+
+  .logo-suits {
+    font-size: 1.3rem;
+    letter-spacing: -0.1em;
+    line-height: 1;
+  }
+
+  .logo-suits .h { color: var(--heart); }
+  .logo-suits .s { color: var(--spade); }
+  .logo-suits .d { color: var(--diamond); }
+  .logo-suits .c { color: var(--club); }
+
+  .logo-text {
+    font-family: var(--font-ui);
+    font-size: 1.55rem;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.03em;
+  }
+
+  .logo-text span {
+    color: var(--gold);
+    font-weight: 600;
+  }
+
+  .header-sub {
+    font-size: 0.78rem;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-left: auto;
+  }
+
+  .status-pill {
+    display: flex; align-items: center; gap: 0.4rem;
+    padding: 0.35rem 0.9rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-family: var(--font-mono);
+  }
+
+  .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--club);
+    box-shadow: 0 0 6px var(--glow-g);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; } 50% { opacity: 0.4; }
+  }
+
+  /* ── Main layout (program sidebar left | camera right) ── */
+  .layout {
+    position: relative; z-index: 1;
+    display: grid;
+    grid-template-columns: minmax(300px, 400px) 1fr;
+    grid-template-rows: auto 1fr auto;
+    gap: 0;
+    height: calc(100vh - 65px);
+  }
+
+  /* ── Camera panel ── */
+  .camera-panel {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    position: relative;
+    background: #070a10;
+    overflow: hidden;
+    border-left: 1px solid var(--border);
+  }
+
+  .camera-feed {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .camera-overlay {
+    position: absolute; inset: 0;
+    pointer-events: none;
+  }
+
+  /* Corner brackets */
+  .corner {
+    position: absolute;
+    width: 32px; height: 32px;
+    border-color: var(--diamond);
+    border-style: solid;
+    opacity: 0.7;
+  }
+  .corner.tl { top: 20px; left: 20px; border-width: 2px 0 0 2px; }
+  .corner.tr { top: 20px; right: 20px; border-width: 2px 2px 0 0; }
+  .corner.bl { bottom: 20px; left: 20px; border-width: 0 0 2px 2px; }
+  .corner.br { bottom: 20px; right: 20px; border-width: 0 2px 2px 0; }
+
+  .scan-line {
+    position: absolute;
+    left: 20px; right: 20px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--diamond), transparent);
+    opacity: 0;
+    top: 50%;
+    transition: opacity 0.3s;
+  }
+
+  .scanning .scan-line {
+    opacity: 0.8;
+    animation: scanMove 0.6s ease-in-out;
+  }
+
+  @keyframes scanMove {
+    0% { top: 20%; } 100% { top: 80%; }
+  }
+
+  .camera-label {
+    position: absolute;
+    top: 16px; left: 50%; transform: translateX(-50%);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    color: var(--diamond);
+    opacity: 0.7;
+    text-transform: uppercase;
+  }
+
+  .detected-badge {
+    position: absolute;
+    bottom: 16px; left: 50%; transform: translateX(-50%);
+    background: rgba(13, 17, 26, 0.85);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.5rem 1.2rem;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--club);
+    backdrop-filter: blur(8px);
+    white-space: nowrap;
+    transition: all 0.3s;
+  }
+
+  /* ── Action buttons ── */
+  .action-bar {
+    grid-column: 2;
+    grid-row: 3;
+    display: flex;
+    gap: 1rem;
+    padding: 1.2rem 1.5rem;
+    background: rgba(13, 17, 26, 0.95);
+    border-top: 1px solid var(--border);
+    border-left: 1px solid var(--border);
+  }
+
+  .btn {
+    flex: 1;
+    display: flex; align-items: center; justify-content: center; gap: 0.6rem;
+    padding: 0.9rem 1.5rem;
+    border-radius: 10px;
+    border: none;
+    font-family: var(--font-ui);
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    position: relative;
+    overflow: hidden;
+    letter-spacing: 0.01em;
+  }
+
+  .btn::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: white;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .btn:active::before { opacity: 0.08; }
+
+  .btn-capture {
+    background: linear-gradient(135deg, #1a2a4a, #1e3560);
+    color: var(--diamond);
+    border: 1px solid rgba(79, 195, 247, 0.3);
+    box-shadow: 0 0 20px rgba(79, 195, 247, 0.1);
+  }
+
+  .btn-capture:hover {
+    border-color: rgba(79, 195, 247, 0.6);
+    box-shadow: 0 0 30px rgba(79, 195, 247, 0.2);
+    transform: translateY(-1px);
+  }
+
+  .btn-finish {
+    background: linear-gradient(135deg, #3a1a1a, #501e1e);
+    color: var(--heart);
+    border: 1px solid rgba(230, 57, 80, 0.3);
+    box-shadow: 0 0 20px rgba(230, 57, 80, 0.1);
+  }
+
+  .btn-finish:hover {
+    border-color: rgba(230, 57, 80, 0.6);
+    box-shadow: 0 0 30px rgba(230, 57, 80, 0.2);
+    transform: translateY(-1px);
+  }
+
+  .btn-reset {
+    flex: 0 0 auto;
+    padding: 0.9rem 1.2rem;
+    background: var(--panel);
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+
+  .btn-reset:hover {
+    color: var(--text);
+    border-color: var(--muted);
+  }
+
+  .btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none !important;
+  }
+
+  .btn-icon { font-size: 1.1rem; }
+
+  /* ── Sidebar (program + tabs) ── */
+  .sidebar {
+    grid-column: 1;
+    grid-row: 1 / 4;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+  }
+
+  .sidebar-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab {
+    flex: 1;
+    padding: 0.85rem;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: var(--font-ui);
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+  }
+
+  .tab.active {
+    color: var(--text);
+    border-bottom-color: var(--gold);
+  }
+
+  .tab-content {
+    display: none;
+    flex: 1;
+    overflow-y: auto;
+    flex-direction: column;
+  }
+
+  .tab-content.active { display: flex; }
+
+  /* Scrollbar */
+  .tab-content::-webkit-scrollbar { width: 4px; }
+  .tab-content::-webkit-scrollbar-track { background: transparent; }
+  .tab-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* ── Program view ── */
+  .program-header {
+    padding: 1rem 1.2rem 0.55rem;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .program-title-stack {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .program-title {
+    font-family: var(--font-ui);
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+
+  .program-subtitle {
+    margin-top: 0.35rem;
+    font-size: 0.69rem;
+    color: var(--muted);
+    line-height: 1.45;
+  }
+
+  .line-count {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+
+  .program-header-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.45rem;
+    flex-shrink: 0;
+  }
+
+  .btn-manual-line {
+    font-family: var(--font-ui);
+    font-size: 0.69rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--diamond);
+    background: rgba(79, 195, 247, 0.08);
+    border: 1px solid rgba(79, 195, 247, 0.28);
+    border-radius: 8px;
+    padding: 0.32rem 0.62rem;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    white-space: nowrap;
+  }
+
+  .btn-manual-line:hover {
+    background: rgba(79, 195, 247, 0.15);
+    border-color: rgba(79, 195, 247, 0.5);
+  }
+
+  .btn-manual-line:disabled {
+    opacity: 0.42;
+    cursor: not-allowed;
+  }
+
+  .manual-line-marker {
+    display: inline-block;
+    margin-left: 0.35rem;
+    font-size: 0.58rem;
+    font-family: var(--font-mono);
+    letter-spacing: 0.12em;
+    color: rgba(79, 195, 247, 0.75);
+    text-transform: uppercase;
+  }
+
+  .program-lines {
+    flex: 1;
+    padding: 0 0.8rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .program-line {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.6rem 0.8rem;
+    animation: slideIn 0.3s ease;
+  }
+
+  .line-edit-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+    margin-bottom: 0.42rem;
+  }
+
+  .line-gutter {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .line-label-num {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    font-weight: 500;
+    color: var(--gold);
+    writing-mode: horizontal-tb;
+    white-space: nowrap;
+  }
+
+  .btn-line-remove {
+    font-family: var(--font-ui);
+    font-size: 0.74rem;
+    color: var(--muted);
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 0.12rem 0.42rem;
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.15s, border-color 0.15s;
+  }
+
+  .btn-line-remove:hover {
+    color: var(--heart);
+    border-color: rgba(230, 57, 80, 0.35);
+  }
+
+  .btn-line-remove:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  .line-shorthand {
+    flex: 1;
+    width: calc(100% - 54px);
+    min-height: 2.95rem;
+    max-height: 8rem;
+    resize: vertical;
+    padding: 0.42rem 0.55rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: #080b10;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    line-height: 1.45;
+  }
+
+  .line-shorthand::placeholder {
+    color: rgba(107,117,146,0.55);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+  }
+
+  .line-shorthand:focus {
+    outline: none;
+    border-color: rgba(79,195,247,0.45);
+    box-shadow: 0 0 0 1px rgba(79,195,247,0.12);
+  }
+
+  .detection-caption {
+    font-family: var(--font-ui);
+    font-size: 0.61rem;
+    color: var(--muted);
+    margin-bottom: 0.38rem;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(10px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  .line-num {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--muted);
+    margin-bottom: 0.35rem;
+  }
+
+  .token-chips {
+    display: flex; flex-wrap: wrap; gap: 0.3rem;
+  }
+
+  .token-chip {
+    display: inline-flex; align-items: center; gap: 0.25rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 500;
+  }
+
+  .token-chip.heart   { background: rgba(230,57,80,0.15);  color: var(--heart);   border: 1px solid rgba(230,57,80,0.25); }
+  .token-chip.spade   { background: rgba(200,208,232,0.1); color: var(--spade);   border: 1px solid rgba(200,208,232,0.2);}
+  .token-chip.diamond { background: rgba(79,195,247,0.12); color: var(--diamond); border: 1px solid rgba(79,195,247,0.25);}
+  .token-chip.club    { background: rgba(105,240,174,0.1); color: var(--club);    border: 1px solid rgba(105,240,174,0.2);}
+  .token-chip.face    { background: rgba(245,200,66,0.12); color: var(--gold);    border: 1px solid rgba(245,200,66,0.2); }
+
+  .empty-state {
+    flex: 1;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 0.75rem;
+    color: var(--muted);
+    text-align: center;
+    padding: 2rem;
+  }
+
+  .empty-suits {
+    font-size: 2.5rem;
+    letter-spacing: 0.1em;
+    opacity: 0.4;
+  }
+
+  .empty-text {
+    font-size: 0.85rem;
+    line-height: 1.6;
+  }
+
+  /* ── Python preview ── */
+  .code-view {
+    flex: 1;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .code-label {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .code-block {
+    flex: 1;
+    background: #080b10;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+    overflow-y: auto;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    line-height: 1.7;
+    color: #c9d1e8;
+    white-space: pre;
+  }
+
+  .code-block .kw  { color: #c792ea; }
+  .code-block .fn  { color: var(--diamond); }
+  .code-block .str { color: var(--club); }
+  .code-block .num { color: #f78c6c; }
+  .code-block .cm  { color: var(--muted); font-style: italic; }
+
+  /* ── Output panel ── */
+  .output-view {
+    flex: 1;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .output-header {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  .output-block {
+    flex: 1;
+    background: #050710;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+    overflow-y: auto;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    line-height: 1.9;
+    color: var(--club);
+    white-space: pre-wrap;
+  }
+
+  .output-block.error-output {
+    color: var(--heart);
+    border-color: rgba(230, 57, 80, 0.3);
+  }
+
+  .file-badge {
+    display: flex; align-items: center; gap: 0.4rem;
+    padding: 0.3rem 0.7rem;
+    background: rgba(245, 200, 66, 0.1);
+    border: 1px solid rgba(245, 200, 66, 0.25);
+    border-radius: 6px;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--gold);
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+
+  .file-badge:hover {
+    background: rgba(245, 200, 66, 0.18);
+    border-color: rgba(245, 200, 66, 0.5);
+  }
+
+  /* ── Toast notifications ── */
+  .toast-container {
+    position: fixed;
+    bottom: 90px; left: 50%; transform: translateX(-50%);
+    z-index: 100;
+    display: flex; flex-direction: column; gap: 0.5rem;
+    align-items: center;
+    pointer-events: none;
+  }
+
+  .toast {
+    padding: 0.65rem 1.3rem;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    backdrop-filter: blur(10px);
+    animation: toastIn 0.3s ease, toastOut 0.3s ease 2.5s forwards;
+    pointer-events: none;
+  }
+
+  .toast.success {
+    background: rgba(13, 50, 30, 0.92);
+    border: 1px solid rgba(105, 240, 174, 0.4);
+    color: var(--club);
+  }
+
+  .toast.error {
+    background: rgba(50, 10, 15, 0.92);
+    border: 1px solid rgba(230, 57, 80, 0.4);
+    color: var(--heart);
+  }
+
+  .toast.info {
+    background: rgba(10, 25, 50, 0.92);
+    border: 1px solid rgba(79, 195, 247, 0.4);
+    color: var(--diamond);
+  }
+
+  @keyframes toastIn  { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes toastOut { from { opacity: 1; } to { opacity: 0; } }
+
+  /* ── Processing overlay ── */
+  .processing {
+    position: absolute; inset: 0;
+    background: rgba(7, 10, 16, 0.75);
+    display: none;
+    align-items: center; justify-content: center;
+    flex-direction: column; gap: 1rem;
+    backdrop-filter: blur(4px);
+    z-index: 20;
+  }
+
+  .processing.active { display: flex; }
+
+  .spinner {
+    width: 40px; height: 40px;
+    border: 2px solid var(--border);
+    border-top-color: var(--diamond);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .processing-text {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--diamond);
+    letter-spacing: 0.1em;
+  }
+
+  /* ── Reference card ── */
+  .ref-view {
+    flex: 1;
+    padding: 0.8rem;
+    overflow-y: auto;
+  }
+
+  .ref-section {
+    margin-bottom: 1.2rem;
+  }
+
+  .ref-section-title {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.3rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .ref-section-title.heart   { color: var(--heart); }
+  .ref-section-title.spade   { color: var(--spade); }
+  .ref-section-title.diamond { color: var(--diamond); }
+  .ref-section-title.club    { color: var(--club); }
+  .ref-section-title.face    { color: var(--gold); }
+
+  .ref-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.25rem;
+  }
+
+  .ref-item {
+    display: flex; align-items: center; gap: 0.4rem;
+    padding: 0.3rem 0.5rem;
+    border-radius: 5px;
+    background: var(--panel);
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+  }
+
+  .ref-card {
+    font-weight: 500;
+    min-width: 28px;
+  }
+
+  .ref-arrow { color: var(--muted); font-size: 0.6rem; }
+  .ref-token { color: var(--muted); font-size: 0.65rem; }
+
+  /* ── Live tab ── */
+  .live-view {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .live-header {
+    padding: 0.8rem 1.2rem 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .live-title {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--club);
+  }
+
+  .live-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--club);
+    box-shadow: 0 0 6px var(--glow-g);
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  .live-count {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--muted);
+  }
+
+  .live-cards {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.6rem 0.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .live-card-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.45rem 0.7rem;
+    border-radius: 7px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    transition: border-color 0.2s;
+  }
+
+  .live-card-row.mapped {
+    border-color: rgba(105, 240, 174, 0.2);
+  }
+
+  .live-card-row.unmapped {
+    border-color: rgba(0, 165, 255, 0.15);
+    opacity: 0.6;
+  }
+
+  .live-order {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    color: var(--muted);
+    min-width: 16px;
+    text-align: right;
+  }
+
+  .live-card-label {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 600;
+    min-width: 32px;
+  }
+
+  .live-card-label.heart   { color: var(--heart); }
+  .live-card-label.spade   { color: var(--spade); }
+  .live-card-label.diamond { color: var(--diamond); }
+  .live-card-label.club    { color: var(--club); }
+  .live-card-label.unmapped { color: var(--muted); }
+
+  .live-arrow {
+    color: var(--border);
+    font-size: 0.65rem;
+  }
+
+  .live-token {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--text);
+    flex: 1;
+  }
+
+  .live-desc {
+    font-size: 0.67rem;
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  .live-conf {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    color: var(--muted);
+  }
+
+  .live-token-strip {
+    padding: 0.5rem 0.8rem;
+    background: rgba(7, 10, 16, 0.6);
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    min-height: 38px;
+    align-items: center;
+  }
+
+  .live-token-strip .token-chip {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.4rem;
+  }
+
+  .live-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    color: var(--muted);
+    font-size: 0.82rem;
+    text-align: center;
+    padding: 2rem;
+  }
+
+  .live-empty-icon {
+    font-size: 2rem;
+    opacity: 0.3;
+    animation: pulse 2s ease-in-out infinite;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-suits">
+      <span class="h">♥</span><span class="s">♠</span><span class="d">♦</span><span class="c">♣</span>
+    </div>
+    <div class="logo-text">Card<span>Code</span></div>
+  </div>
+  <div class="header-sub">Card-Based Programming Language</div>
+  <div class="status-pill">
+    <div class="status-dot"></div>
+    <span id="statusText">Camera Active</span>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- Sidebar — program editing (left) -->
+  <div class="sidebar">
+    <div class="sidebar-tabs">
+      <button type="button" class="tab active" data-tab="program" onclick="switchTab('program')">Program</button>
+      <button type="button" class="tab" data-tab="python" onclick="switchTab('python')">Python</button>
+      <button type="button" class="tab" data-tab="output" onclick="switchTab('output')">Output</button>
+      <button type="button" class="tab" data-tab="ref" onclick="switchTab('ref')">Cards</button>
+    </div>
+
+    <!-- Program tab -->
+    <div class="tab-content active" id="tab-program">
+      <div class="program-header">
+        <div class="program-title-stack">
+          <div class="program-title">Program Lines</div>
+          <div class="program-subtitle">Use <strong>＋ Typed line</strong> to add an empty row (no camera). The next Capture Line appends underneath. Edit shorthand (e.g. 10H 7H 3S), then End & Run.</div>
+        </div>
+        <div class="program-header-right">
+          <button type="button" class="btn-manual-line" id="btnManualLine" onclick="addManualProgramLine()">＋ Typed line</button>
+          <div class="line-count" id="lineCount">0 lines</div>
+        </div>
+      </div>
+      <div class="program-lines" id="programLines">
+        <div class="empty-state">
+          <div class="empty-suits">♥ ♠ ♦ ♣</div>
+          <div class="empty-text">Lay cards on the surface and press<br><strong>Capture Line</strong> to begin coding.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Python tab -->
+    <div class="tab-content" id="tab-python">
+      <div class="code-view">
+        <div class="code-label">Generated Python</div>
+        <div class="code-block" id="pythonCode"># Your program will appear here...</div>
+      </div>
+    </div>
+
+    <!-- Output tab -->
+    <div class="tab-content" id="tab-output">
+      <div class="output-view">
+        <div class="output-header">
+          <div class="code-label">Program Output</div>
+          <div id="fileBadges" style="display:flex;gap:0.5rem;"></div>
+        </div>
+        <div class="output-block" id="outputBlock">// Run your program to see output</div>
+      </div>
+    </div>
+
+    <!-- Reference tab -->
+    <div class="tab-content" id="tab-ref">
+      <div class="ref-view" id="refView"></div>
+    </div>
+
+  </div>
+
+  <!-- Camera Panel -->
+  <div class="camera-panel" id="cameraPanel">
+    <img class="camera-feed" id="cameraFeed" src="/stream" alt="Camera feed">
+    <div class="camera-overlay">
+      <div class="corner tl"></div>
+      <div class="corner tr"></div>
+      <div class="corner bl"></div>
+      <div class="corner br"></div>
+      <div class="scan-line" id="scanLine"></div>
+      <div class="camera-label">LIVE FEED</div>
+      <div class="detected-badge" id="detectedBadge">Lay cards on surface to begin</div>
+    </div>
+    <div class="processing" id="processingOverlay">
+      <div class="spinner"></div>
+      <div class="processing-text" id="processingText">Scanning cards...</div>
+    </div>
+  </div>
+
+  <!-- Action Bar -->
+  <div class="action-bar">
+    <button class="btn btn-capture" id="btnCapture" onclick="captureLine()">
+      Capture Line
+    </button>
+    <button class="btn btn-finish" id="btnFinish" onclick="finishProgram()">
+      <span class="btn-icon">▶</span>
+      End &amp; Run
+    </button>
+    <button class="btn btn-reset" onclick="resetProgram()" title="Reset program">
+      ↺
+    </button>
+  </div>
+
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+let isProcessing = false;
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.sidebar-tabs .tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === name);
+  });
+  document.querySelectorAll('.sidebar > .tab-content').forEach(panel => {
+    panel.classList.toggle('active', panel.id === 'tab-' + name);
+  });
+}
+
+function gatherProgramLinesFromEditors() {
+  const rows = [];
+  document.querySelectorAll('#programLines .line-shorthand').forEach(area => {
+    const t = area.value.trim();
+    if (t.length) rows.push(t);
+  });
+  return rows;
+}
+
+function refreshLineLabels() {
+  document.querySelectorAll('#programLines .program-line').forEach((row, i) => {
+    row.dataset.programIndex = String(i);
+    const num = row.querySelector('.line-label-num');
+    if (num) num.textContent = 'LINE ' + (i + 1);
+  });
+  updateLineSidebarCount();
+}
+
+function updateLineSidebarCount() {
+  const n = document.querySelectorAll('#programLines .program-line').length;
+  document.getElementById('lineCount').textContent =
+    n + ' line' + (n !== 1 ? 's' : '');
+}
+
+async function removeProgramLine(btn) {
+  const row = btn && btn.closest ? btn.closest('.program-line') : null;
+  if (!row || isProcessing) return;
+  const container = document.getElementById('programLines');
+  const ix = [...container.querySelectorAll('.program-line')].indexOf(row);
+  if (ix < 0) return;
+
+  try {
+    const res = await fetch('/program/line/' + ix, { method: 'DELETE' });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.ok === false) {
+      if (res.status !== 404 && res.status !== 400) {
+        toast(data.error || 'Could not remove line', 'error');
+        return;
+      }
+    }
+  } catch (e) {
+    toast('Network error: ' + e.message, 'error');
+    return;
+  }
+
+  row.remove();
+  if (!container.querySelector('.program-line')) {
+    container.innerHTML = `
+    <div class="empty-state">
+      <div class="empty-suits">♥ ♠ ♦ ♣</div>
+      <div class="empty-text">Lay cards on the surface and press<br><strong>Capture Line</strong> to begin coding.</div>
+    </div>`;
+  }
+  refreshLineLabels();
+  toast('Line removed', 'info');
+}
+
+async function addManualProgramLine() {
+  if (isProcessing) return;
+  const btn = document.getElementById('btnManualLine');
+  if (btn) btn.disabled = true;
+  switchTab('program');
+
+  try {
+    const res = await fetch('/program/manual_line', { method: 'POST' });
+    const data = await res.json();
+    if (!data.ok) {
+      toast(data.error || 'Could not add typed line', 'error');
+      return;
+    }
+    addProgramLineToUI({
+      lineNum: data.line_number,
+      tokens: [],
+      cards: [],
+      shorthand: '',
+      manual: true,
+    });
+    toast('Typed line added — next Capture Line appears below.', 'success');
+  } catch (e) {
+    toast('Network error: ' + e.message, 'error');
+  } finally {
+    if (btn) btn.disabled = isProcessing;
+  }
+}
+
+// ── Capture Line ──────────────────────────────────────────────────────────────
+async function captureLine() {
+  if (isProcessing) return;
+  setProcessing(true, 'Scanning cards...');
+  triggerScan();
+
+  try {
+    const res = await fetch('/capture', { method: 'POST' });
+    const data = await res.json();
+
+    if (!data.ok) {
+      toast(data.error || 'No cards detected', 'error');
+      return;
+    }
+
+    addLineToUI(data.line_number, data.tokens, data.cards, data.shorthand || '');
+    document.getElementById('detectedBadge').textContent =
+      `Line ${data.line_number}: ${data.tokens.length} token${data.tokens.length !== 1 ? 's' : ''} captured`;
+
+    toast(`Line ${data.line_number} captured — ${data.tokens.length} tokens`, 'success');
+
+  } catch(e) {
+    toast('Network error: ' + e.message, 'error');
+  } finally {
+    setProcessing(false);
+  }
+}
+
+// ── Finish & Run ──────────────────────────────────────────────────────────────
+async function finishProgram() {
+  if (isProcessing) return;
+
+  const linePayload = gatherProgramLinesFromEditors();
+  if (linePayload.length === 0) {
+    toast('Add at least one line (capture cards or type shorthand in the editors).', 'error');
+    return;
+  }
+
+  setProcessing(true, 'Transpiling & running...');
+  triggerScan();
+
+  try {
+    const res = await fetch('/finish', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ lines: linePayload }),
+    });
+    const data = await res.json();
+
+    switchTab('output');
+
+    const badges = document.getElementById('fileBadges');
+    badges.innerHTML = '';
+
+    if (!data.ok) {
+      const msg = data.error || ('HTTP error ' + res.status);
+      toast(msg, 'error');
+      showOutput('ERROR:\n' + msg, true);
+      return;
+    }
+
+    updatePythonPreview(data.python_source);
+
+    if (data.error) {
+      showOutput('Runtime Error:\n' + data.error, true);
+      toast('Runtime error — see Output tab', 'error');
+    } else {
+      const out = data.output !== undefined && String(data.output).trim() !== ''
+        ? String(data.output)
+        : '(program ran with no stdout)';
+      showOutput(out, false);
+      toast(`Program finished — ${data.token_count ?? '?'} tokens, ${data.line_count ?? '?'} lines`, 'success');
+    }
+
+    if (data.card_file) {
+      badges.innerHTML += `<a class="file-badge" href="/programs/${data.card_file}" download>🃏 ${data.card_file}</a>`;
+    }
+    if (data.py_file) {
+      badges.innerHTML += `<a class="file-badge" href="/programs/${data.py_file}" download>🐍 ${data.py_file}</a>`;
+    }
+
+  } catch(e) {
+    toast('Network error: ' + e.message, 'error');
+    switchTab('output');
+    showOutput('NETWORK ERROR:\n' + e.message, true);
+  } finally {
+    setProcessing(false);
+  }
+}
+
+// ── Reset ─────────────────────────────────────────────────────────────────────
+async function resetProgram() {
+  if (isProcessing) return;
+  await fetch('/reset', { method: 'POST' });
+  document.getElementById('programLines').innerHTML = `
+    <div class="empty-state">
+      <div class="empty-suits">♥ ♠ ♦ ♣</div>
+      <div class="empty-text">Lay cards on the surface and press<br><strong>Capture Line</strong> to begin coding.</div>
+    </div>`;
+  document.getElementById('lineCount').textContent = '0 lines';
+  document.getElementById('pythonCode').textContent = '# Your program will appear here...';
+  document.getElementById('outputBlock').textContent = '// Run your program to see output';
+  document.getElementById('outputBlock').className = 'output-block';
+  document.getElementById('fileBadges').innerHTML = '';
+  document.getElementById('detectedBadge').textContent = 'Lay cards on surface to begin';
+  toast('Program reset', 'info');
+}
+
+// ── UI helpers ────────────────────────────────────────────────────────────────
+function addLineToUI(lineNum, tokens, cards, shorthand) {
+  addProgramLineToUI({
+    lineNum,
+    tokens: tokens || [],
+    cards: cards || [],
+    shorthand: shorthand || '',
+    manual: false,
+  });
+}
+
+function addProgramLineToUI({ lineNum, tokens, cards, shorthand, manual }) {
+  const container = document.getElementById('programLines');
+  const empty = container.querySelector('.empty-state');
+  if (empty) empty.remove();
+
+  const line = document.createElement('div');
+  line.className = 'program-line';
+  line.dataset.lineSource = manual ? 'manual' : 'capture';
+
+  // Editable shorthand (canonical program source for End & Run)
+  const editRow = document.createElement('div');
+  editRow.className = 'line-edit-banner';
+
+  const gutter = document.createElement('div');
+  gutter.className = 'line-gutter';
+
+  const lineNumLbl = document.createElement('span');
+  lineNumLbl.className = 'line-label-num';
+  lineNumLbl.textContent = 'LINE ' + lineNum;
+
+  const removeBtn = document.createElement('button');
+  removeBtn.type = 'button';
+  removeBtn.className = 'btn-line-remove';
+  removeBtn.title = 'Remove line';
+  removeBtn.textContent = '×';
+  removeBtn.onclick = () => removeProgramLine(removeBtn);
+
+  gutter.appendChild(lineNumLbl);
+  gutter.appendChild(removeBtn);
+
+  const textarea = document.createElement('textarea');
+  textarea.className = 'line-shorthand';
+  textarea.spellcheck = false;
+  textarea.autocomplete = 'off';
+  textarea.placeholder = manual
+    ? 'Type shorthand, e.g. 10H 7H 3S JH …'
+    : 'e.g. 10H 7H 3S JH …';
+  textarea.value = typeof shorthand === 'string' ? shorthand : '';
+
+  editRow.appendChild(gutter);
+  editRow.appendChild(textarea);
+  line.appendChild(editRow);
+
+  const cap = document.createElement('div');
+  cap.className = 'detection-caption';
+  if (manual) {
+    cap.innerHTML =
+      'Typed line <span class="manual-line-marker">⌨︎ typed</span> — no snapshot. Fill shorthand above; the next <strong>Capture Line</strong> inserts a row below.';
+  } else {
+    cap.textContent = `Captured row ${lineNum} — ${tokens.length} mapped token${tokens.length !== 1 ? 's' : ''}; ${cards.length} card snapshot${cards.length !== 1 ? 's' : ''} (reference below)`;
+  }
+  line.appendChild(cap);
+
+  if (!manual && Array.isArray(cards) && cards.length > 0) {
+    const table = document.createElement('div');
+    table.style.cssText = 'display:flex;flex-direction:column;gap:0.2rem;margin-top:0.35rem;';
+
+    cards.forEach((c, i) => {
+      const row = document.createElement('div');
+      row.style.cssText = `
+        display:grid;
+        grid-template-columns:18px 38px 1fr auto;
+        align-items:center;
+        gap:0.4rem;
+        padding:0.3rem 0.5rem;
+        border-radius:5px;
+        background: ${c.mapped ? 'rgba(105,240,174,0.05)' : 'rgba(255,255,255,0.03)'};
+        border:1px solid ${c.mapped ? 'rgba(105,240,174,0.15)' : 'rgba(255,255,255,0.06)'};
+      `;
+
+      const pos = document.createElement('span');
+      pos.style.cssText = "font-family:'JetBrains Mono',monospace;font-size:0.62rem;color:var(--muted);text-align:right;";
+      pos.textContent = i + 1;
+
+      const label = document.createElement('span');
+      label.style.cssText = `font-family:'JetBrains Mono',monospace;font-size:0.8rem;font-weight:600;color:${getSuitColor(c.label)};`;
+      label.textContent = c.label;
+
+      const info = document.createElement('span');
+      info.style.cssText = 'display:flex;flex-direction:column;gap:0.1rem;min-width:0;';
+      if (c.mapped) {
+        info.innerHTML = `
+          <span style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--text);">${c.token}</span>
+          <span style="font-size:0.62rem;color:var(--muted);font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.desc}</span>
+        `;
+      } else {
+        info.innerHTML = `<span style="font-size:0.68rem;color:var(--muted);font-style:italic;">unmapped</span>`;
+      }
+
+      const conf = document.createElement('span');
+      conf.style.cssText = "font-family:'JetBrains Mono',monospace;font-size:0.62rem;color:var(--muted);";
+      conf.textContent = `${Math.round((c.conf || 0) * 100)}%`;
+
+      row.appendChild(pos);
+      row.appendChild(label);
+      row.appendChild(info);
+      row.appendChild(conf);
+      table.appendChild(row);
+    });
+
+    line.appendChild(table);
+  }
+
+  if (!manual && tokens.length > 0) {
+    const strip = document.createElement('div');
+    strip.className = 'token-chips';
+    strip.style.marginTop = '0.4rem';
+    tokens.forEach(t => {
+      const chip = document.createElement('div');
+      chip.className = `token-chip ${getTokenClass(t.token)}`;
+      chip.title = `${t.card}\n${t.desc}`;
+      chip.textContent = t.token.replace('_', ' ');
+      strip.appendChild(chip);
+    });
+    line.appendChild(strip);
+  }
+
+  container.appendChild(line);
+  container.scrollTop = container.scrollHeight;
+  refreshLineLabels();
+}
+
+function getSuitColor(label) {
+  if (!label) return 'var(--muted)';
+  const suit = label.slice(-1).toUpperCase();
+  if (suit === 'H') return 'var(--heart)';
+  if (suit === 'S') return 'var(--spade)';
+  if (suit === 'D') return 'var(--diamond)';
+  if (suit === 'C') return 'var(--club)';
+  return 'var(--gold)';
+}
+
+function getTokenClass(token) {
+  if (token.startsWith('PUSH')) return 'heart';
+  if (['ADD','SUB','MUL','MOD','EQ','AND','NOT','DUP','SWAP','POP'].includes(token)) return 'spade';
+  if (['FOR','LOAD_CTR','IF','ELSE','END'].includes(token)) return 'diamond';
+  if (token.startsWith('STORE') || token.startsWith('LOAD')) return 'club';
+  return 'face';
+}
+
+function updatePythonPreview(code) {
+  if (!code) return;
+  const el = document.getElementById('pythonCode');
+  el.textContent = code;
+  // Simple syntax highlighting
+  el.innerHTML = el.textContent
+    .replace(/\b(for|if|else|in|range|print|str|chr|and|not|or)\b/g, '<span class="kw">$1</span>')
+    .replace(/\b(\d+)\b/g, '<span class="num">$1</span>')
+    .replace(/(#.*$)/gm, '<span class="cm">$1</span>');
+}
+
+function showOutput(text, isError) {
+  const el = document.getElementById('outputBlock');
+  el.textContent = text;
+  el.className = 'output-block' + (isError ? ' error-output' : '');
+}
+
+function setProcessing(active, text) {
+  isProcessing = active;
+  const overlay = document.getElementById('processingOverlay');
+  const capture = document.getElementById('btnCapture');
+  const finish = document.getElementById('btnFinish');
+  const manual = document.getElementById('btnManualLine');
+  overlay.classList.toggle('active', active);
+  capture.disabled = active;
+  finish.disabled = active;
+  if (manual) manual.disabled = active;
+  if (text) document.getElementById('processingText').textContent = text;
+}
+
+function triggerScan() {
+  const panel = document.getElementById('cameraPanel');
+  panel.classList.add('scanning');
+  setTimeout(() => panel.classList.remove('scanning'), 700);
+}
+
+function toast(msg, type = 'info') {
+  const container = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  container.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+// ── Reference card ────────────────────────────────────────────────────────────
+const REFERENCE = [
+  {
+    title: '♥ Hearts — Integers', cls: 'heart',
+    items: [
+      ['A♥','Push 1'],['2♥','Push 2'],['3♥','Push 3'],['4♥','Push 4'],['5♥','Push 5'],
+      ['6♥','Push 6'],['7♥','Push 7'],['8♥','Push 8'],['9♥','Push 9'],['10♥','Push 10'],
+      ['Q♥','Push 0'],
+    ]
+  },
+  {
+    title: '♠ Spades — Arithmetic & Stack', cls: 'spade',
+    items: [
+      ['A♠','ADD'],['2♠','SUB'],['3♠','MUL'],['4♠','MOD'],['5♠','EQ =='],
+      ['6♠','AND'],['7♠','NOT'],['8♠','DUP'],['9♠','SWAP'],['10♠','POP'],
+    ]
+  },
+  {
+    title: '♦ Diamonds — Control Flow', cls: 'diamond',
+    items: [
+      ['A♦','FOR loop'],['2♦','Load CTR'],['3♦','IF'],['4♦','ELSE'],['5♦','END'],
+    ]
+  },
+  {
+    title: '♣ Clubs — Registers', cls: 'club',
+    items: [
+      ['A♣','Store → A'],['2♣','Store → B'],['3♣','Load A'],['4♣','Load B'],
+      ['5♣','Store Str A'],['6♣','Store Str B'],['7♣','Load Str A'],['8♣','Load Str B'],
+    ]
+  },
+  {
+    title: 'Face Cards — String Ops', cls: 'face',
+    items: [
+      ['J♥','CHAR (int→chr)'],['J♠','CONCAT'],['J♦','Num→Str'],['J♣','Print Str'],
+      ['Q♣','Print Num'],
+    ]
+  },
+];
+
+function buildReference() {
+  const view = document.getElementById('refView');
+  view.innerHTML = REFERENCE.map(section => `
+    <div class="ref-section">
+      <div class="ref-section-title ${section.cls}">${section.title}</div>
+      <div class="ref-grid">
+        ${section.items.map(([card, desc]) => `
+          <div class="ref-item">
+            <span class="ref-card ${section.cls}">${card}</span>
+            <span class="ref-arrow">→</span>
+            <span class="ref-token">${desc}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+buildReference();
+</script>
+</body>
+</html>

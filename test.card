@@ -1,0 +1,34 @@
+# CardCode Program
+# Generated: 2026-05-05T14:10:32.011236
+# Lines: 4  Tokens: 12
+
+# --- SETUP "Fizz" ---
+10H 7H 3S JH                  # 70 -> 'F'
+10H 10H 3S 5H AS JH           # 105 -> 'i'
+10H 10H AS 6H 3S 2H AS JH     # 122 -> 'z'
+8S JS JS JS 5C                # DUP CONCATx3 -> STORE_STR_A
+
+# --- SETUP "Buzz" ---
+10H 6H 3S 6H AS JH            # 66 -> 'B'
+10H 10H 3S 10H AS 7H AS JH    # 117 -> 'u'
+10H 10H AS 6H 3S 2H AS JH     # 122 -> 'z'
+8S JS JS JS 6C                # DUP CONCATx3 -> STORE_STR_B
+
+# --- LOOP 1-15 ---
+10H 5H AS AD                  # 15 FOR
+    2D 3H 4S QH 5S            # LOAD_CTR 3 MOD 0 EQ
+    2D 5H 4S QH 5S            # LOAD_CTR 5 MOD 0 EQ
+    6S 3D                     # AND IF
+        7C 8C JS JC           # LOAD_STR_A LOAD_STR_B CONCAT PRINT_STR
+    4D                        # ELSE
+        2D 3H 4S QH 5S 3D     # LOAD_CTR 3 MOD 0 EQ IF
+            7C JC             # LOAD_STR_A PRINT_STR
+        4D                    # ELSE
+            2D 5H 4S QH 5S 3D # LOAD_CTR 5 MOD 0 EQ IF
+                8C JC         # LOAD_STR_B PRINT_STR
+            4D                # ELSE
+                2D JD JC      # LOAD_CTR NUM_TO_STR PRINT_STR
+            5D                # END
+        5D                    # END
+    5D                        # END
+5D                            # END

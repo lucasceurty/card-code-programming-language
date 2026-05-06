@@ -1,0 +1,61 @@
+# CardCode Program
+# Generated: 2026-05-05T16:42:30.704413
+# Lines: 25  Tokens: 96
+
+10H 7H 3S JH
+10H 10H 3S 5H AS JH
+10H 10H AS 6H 3S 2H AS JH
+8S JS JS JS 5C
+10H 6H 3S 6H AS JH
+10H 10H 3S 10H AS 7H AS JH
+10H 10H AS 6H 3S 2H AS JH
+8S JS JS JS 6C
+10H 5H AS AD
+2D 3H 4S QH 5S
+2D 5H 4S QH 5S
+6S 3D
+7C 8C JS JC
+4D
+2D 3H 4S QH 5S 3D
+7C JC
+4D
+2D 5H 4S QH 5S 3D
+8C JC
+4D
+2D JD JC
+5D
+5D
+5D
+5D
+
+# ── Generated Python ───────────────────────────────────
+# _str_a = (chr((10 * 7)) + (chr(((10 * 10) + 5)) + (chr((((10 + 10) * 6) + 2)) + chr((((10 + 10) * 6) + 2)))))
+# _str_b = (chr(((10 * 6) + 6)) + (chr((((10 * 10) + 10) + 7)) + (chr((((10 + 10) * 6) + 2)) + chr((((10 + 10) * 6) + 2)))))
+# for _ctr in range(1, ((10 + 5)) + 1):
+#     if (((_ctr % 3) == 0) and ((_ctr % 5) == 0)):
+#         print((_str_a + _str_b))
+#     else:
+#         if ((_ctr % 3) == 0):
+#             print(_str_a)
+#         else:
+#             if ((_ctr % 5) == 0):
+#                 print(_str_b)
+#             else:
+#                 print(str(_ctr))
+
+# ── Output ─────────────────────────────────────────────
+# 1
+# 2
+# Fizz
+# 4
+# Buzz
+# Fizz
+# 7
+# 8
+# Fizz
+# Buzz
+# 11
+# Fizz
+# 13
+# 14
+# FizzBuzz

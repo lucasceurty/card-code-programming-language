@@ -1,0 +1,10 @@
+
+venv/
+env/
+
+dataset/
+
+__pycache__/
+*.pyc
+.env
+.vscode/

@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="CardCode — a programming language written with playing cards. Point a webcam at your deck and watch your cards become code.">
+<title>CardCode</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Inconsolata:wght@400;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Theme ── */
+:root {
+  --ink:      #1a1410;
+  --paper:    #f5f0e8;
+  --cream:    #ede7d9;
+  --rule:     #c8b89a;
+  --red:      #b91c2a;
+  --faint:    #8a7a6a;
+  --code-bg:  #1e1a16;
+  --code-fg:  #e8dcc8;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'EB Garamond', Georgia, serif;
+  font-size: 1.15rem;
+  line-height: 1.8;
+  min-height: 100vh;
+}
+
+/* ── Paper texture ── */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 27px,
+      rgba(180,160,120,0.07) 27px,
+      rgba(180,160,120,0.07) 28px
+    );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Layout ── */
+.page {
+  position: relative;
+  z-index: 1;
+  max-width: 740px;
+  margin: 0 auto;
+  padding: 0 2rem 6rem;
+}
+
+/* ── Header ── */
+header {
+  padding: 4rem 0 0;
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: 2rem;
+  margin-bottom: 3rem;
+}
+
+.suits {
+  font-size: 1.6rem;
+  letter-spacing: 0.15em;
+  margin-bottom: 0.75rem;
+}
+.suits .r { color: var(--red); }
+.suits .b { color: var(--ink); }
+
+h1 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(3.5rem, 10vw, 5.5rem);
+  font-weight: 900;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  margin-bottom: 1rem;
+}
+
+h1 em {
+  font-style: italic;
+  color: var(--red);
+}
+
+.tagline {
+  font-family: 'EB Garamond', serif;
+  font-size: 1.25rem;
+  font-style: italic;
+  color: var(--faint);
+  margin-bottom: 1.5rem;
+}
+
+.header-links {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.btn {
+  display: inline-block;
+  padding: 0.45rem 1.2rem;
+  font-family: 'Inconsolata', monospace;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: 2px solid var(--ink);
+  color: var(--ink);
+  background: transparent;
+  letter-spacing: 0.05em;
+  transition: all 0.15s;
+}
+
+.btn:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.btn.primary {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.btn.primary:hover {
+  background: var(--red);
+  border-color: var(--red);
+}
+
+/* ── Horizontal rule ── */
+hr {
+  border: none;
+  border-top: 1px solid var(--rule);
+  margin: 3rem 0;
+}
+
+hr.heavy {
+  border-top: 2px solid var(--ink);
+}
+
+/* ── Section headings ── */
+h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.9rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  margin-top: 3rem;
+}
+
+h2 .num {
+  font-family: 'Inconsolata', monospace;
+  font-size: 0.85rem;
+  color: var(--red);
+  display: block;
+  margin-bottom: 0.2rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 1.75rem 0 0.5rem;
+}
+
+p { margin-bottom: 1rem; }
+
+/* ── Code blocks ── */
+pre, code {
+  font-family: 'Inconsolata', 'Courier New', monospace;
+}
+
+pre {
+  background: var(--code-bg);
+  color: var(--code-fg);
+  padding: 1.25rem 1.5rem;
+  overflow-x: auto;
+  font-size: 0.92rem;
+  line-height: 1.65;
+  margin: 1.25rem 0;
+  border-left: 3px solid var(--red);
+}
+
+code {
+  background: var(--cream);
+  padding: 0.1em 0.35em;
+  font-size: 0.88em;
+  color: var(--red);
+  border: 1px solid var(--rule);
+}
+
+pre code {
+  background: none;
+  padding: 0;
+  font-size: inherit;
+  color: inherit;
+  border: none;
+}
+
+/* ── Card mapping table ── */
+.card-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin: 1.5rem 0;
+}
+
+@media (max-width: 560px) {
+  .card-grid { grid-template-columns: 1fr; }
+}
+
+.suit-block {
+  border: 1px solid var(--rule);
+  padding: 1rem 1.2rem;
+  background: white;
+}
+
+.suit-title {
+  font-family: 'Inconsolata', monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.6rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.suit-title .symbol { font-size: 1.2rem; }
+.suit-title.red .symbol { color: var(--red); }
+
+.mapping-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.2rem 0;
+  font-size: 0.88rem;
+  border-bottom: 1px dotted var(--rule);
+}
+
+.mapping-row:last-child { border-bottom: none; }
+
+.card-name {
+  font-family: 'Inconsolata', monospace;
+  font-weight: 700;
+  min-width: 36px;
+  color: var(--ink);
+}
+
+.arrow {
+  color: var(--rule);
+  font-size: 0.75rem;
+}
+
+.token-name {
+  font-family: 'Inconsolata', monospace;
+  color: var(--faint);
+  font-size: 0.82rem;
+}
+
+/* ── Image placeholder ── */
+.screenshot {
+  margin: 1.5rem 0;
+  border: 1px solid var(--rule);
+  background: var(--cream);
+  overflow: hidden;
+}
+
+.screenshot img {
+  width: 100%;
+  display: block;
+}
+
+.screenshot-placeholder {
+  width: 100%;
+  aspect-ratio: 16/9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.5rem;
+  color: var(--rule);
+  font-family: 'Inconsolata', monospace;
+  font-size: 0.82rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: repeating-linear-gradient(
+    45deg,
+    var(--cream),
+    var(--cream) 8px,
+    #e8e0d0 8px,
+    #e8e0d0 16px
+  );
+}
+
+.screenshot-placeholder .icon {
+  font-size: 2rem;
+  opacity: 0.4;
+}
+
+.screenshot-caption {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.82rem;
+  font-style: italic;
+  color: var(--faint);
+  border-top: 1px solid var(--rule);
+  background: white;
+}
+
+/* ── Example program display ── */
+.program-example {
+  margin: 1.5rem 0;
+}
+
+.program-label {
+  font-family: 'Inconsolata', monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin-bottom: 0.3rem;
+}
+
+.file-name {
+  font-family: 'Inconsolata', monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 0.3rem;
+}
+
+/* ── Flow diagram ── */
+.flow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin: 1.5rem 0;
+  font-family: 'Inconsolata', monospace;
+  font-size: 0.88rem;
+}
+
+.flow-step {
+  padding: 0.4rem 0.8rem;
+  border: 1.5px solid var(--ink);
+  background: white;
+  font-weight: 600;
+}
+
+.flow-step.red {
+  background: var(--red);
+  color: white;
+  border-color: var(--red);
+}
+
+.flow-arrow {
+  color: var(--rule);
+  font-size: 1.2rem;
+}
+
+/* ── Quote ── */
+blockquote {
+  border-left: 3px solid var(--red);
+  padding: 0.5rem 0 0.5rem 1.5rem;
+  margin: 2rem 0;
+  font-style: italic;
+  color: var(--faint);
+  font-size: 1.1rem;
+}
+
+/* ── Footer ── */
+footer {
+  margin-top: 5rem;
+  padding-top: 2rem;
+  border-top: 2px solid var(--ink);
+  font-family: 'Inconsolata', monospace;
+  font-size: 0.82rem;
+  color: var(--faint);
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+footer a { color: var(--faint); }
+footer a:hover { color: var(--red); }
+
+/* ── Animations ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+header   { animation: fadeUp 0.5s ease both; }
+.section { animation: fadeUp 0.5s ease both; }
+.section:nth-child(2) { animation-delay: 0.08s; }
+.section:nth-child(3) { animation-delay: 0.14s; }
+.section:nth-child(4) { animation-delay: 0.20s; }
+.section:nth-child(5) { animation-delay: 0.26s; }
+
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ── Header ── -->
+  <header>
+    <div class="suits">
+      <span class="r">♥</span>
+      <span class="b">♠</span>
+      <span class="r">♦</span>
+      <span class="b">♣</span>
+    </div>
+    <h1>Card<em>Code</em></h1>
+    <p class="tagline">A programming language written with playing cards.</p>
+    <div class="header-links">
+      <a class="btn primary" href="https://github.com/YOUR_USERNAME/cardcode">View on GitHub</a>
+      <a class="btn" href="#try">Try it</a>
+      <a class="btn" href="#mapping">Card Map</a>
+    </div>
+  </header>
+
+  <!-- ── What is it ── -->
+  <section class="section">
+    <h2><span class="num">01 —</span> What is CardCode?</h2>
+    <p>
+      CardCode is a stack-based programming language where the source code is
+      a physical deck of playing cards. Point a webcam at a row of cards,
+      press <strong>Capture Line</strong>, and the system reads each card
+      left-to-right and converts it into a token. Press <strong>End &amp; Run</strong>
+      when your program is complete — CardCode transpiles the token sequence
+      to Python and executes it on the spot.
+    </p>
+    <p>
+      Programs are saved as <code>.card</code> files — plain text sequences
+      of card shorthand that can be re-run any time from the command line.
+    </p>
+
+    <div class="flow">
+      <div class="flow-step red">Playing cards</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Webcam</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">YOLO detection</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Tokens</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Python</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step red">Output</div>
+    </div>
+
+    <div class="screenshot">
+      <!-- Replace src with your actual screenshot -->
+      <img src="images/ui_screenshot.png" alt="CardCode web UI"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div class="screenshot-placeholder" style="display:none">
+        <div class="icon">🃏</div>
+        <div>ui_screenshot.png</div>
+      </div>
+      <div class="screenshot-caption">The CardCode web interface — live camera feed with card overlays and token sidebar.</div>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- ── Try it ── -->
+  <section class="section" id="try">
+    <h2><span class="num">02 —</span> Try it yourself</h2>
+
+    <p>
+      The simplest program to test: build the string <strong>"Fizz"</strong>
+      from ASCII values and print it. Lay these cards out one row at a time:
+    </p>
+
+    <div class="program-label">fizz.card</div>
+    <pre><code># Build 'F' (70 = 10 × 7), convert to char
+10H 7H 3S JH
+
+# Build 'i' (105 = 10×10 + 5), convert to char
+10H 10H 3S 5H AS JH
+
+# Build 'z' (122 = (10+10)×6 + 2), convert to char
+10H 10H AS 6H 3S 2H AS JH
+
+# Duplicate 'z', concat all four chars into "Fizz", store
+8S JS JS JS 5C
+
+# Load and print
+7C JC</code></pre>
+
+    <p>Run it from the UI — or from the command line:</p>
+
+    <pre><code>python run.py programs/fizz.card</code></pre>
+
+    <p>Expected output:</p>
+    <pre><code>Fizz</code></pre>
+
+    <hr>
+
+    <h3>Install &amp; run</h3>
+    <pre><code>git clone https://github.com/YOUR_USERNAME/cardcode
+cd cardcode
+pip install -r requirements.txt
+python app.py</code></pre>
+    <p>Open <code>http://localhost:5001</code> in your browser.</p>
+
+    <div class="screenshot">
+      <img src="images/cards_on_table.png" alt="Cards laid on a table"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div class="screenshot-placeholder" style="display:none">
+        <div class="icon">📸</div>
+        <div>cards_on_table.png</div>
+      </div>
+      <div class="screenshot-caption">Cards laid on a flat surface — the webcam reads each row left to right.</div>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- ── Card mapping ── -->
+  <section class="section" id="mapping">
+    <h2><span class="num">03 —</span> The Card Map</h2>
+    <p>
+      Each card maps to exactly one instruction. The suit determines the
+      category; the rank determines the specific command.
+    </p>
+
+    <div class="card-grid">
+
+      <div class="suit-block">
+        <div class="suit-title red">
+          <span class="symbol">♥</span> Hearts — Integers
+        </div>
+        <div class="mapping-row"><span class="card-name">AH</span><span class="arrow">→</span><span class="token-name">PUSH_1</span></div>
+        <div class="mapping-row"><span class="card-name">2H</span><span class="arrow">→</span><span class="token-name">PUSH_2</span></div>
+        <div class="mapping-row"><span class="card-name">3H</span><span class="arrow">→</span><span class="token-name">PUSH_3</span></div>
+        <div class="mapping-row"><span class="card-name">4H</span><span class="arrow">→</span><span class="token-name">PUSH_4</span></div>
+        <div class="mapping-row"><span class="card-name">5H</span><span class="arrow">→</span><span class="token-name">PUSH_5</span></div>
+        <div class="mapping-row"><span class="card-name">6H</span><span class="arrow">→</span><span class="token-name">PUSH_6</span></div>
+        <div class="mapping-row"><span class="card-name">7H</span><span class="arrow">→</span><span class="token-name">PUSH_7</span></div>
+        <div class="mapping-row"><span class="card-name">8H</span><span class="arrow">→</span><span class="token-name">PUSH_8</span></div>
+        <div class="mapping-row"><span class="card-name">9H</span><span class="arrow">→</span><span class="token-name">PUSH_9</span></div>
+        <div class="mapping-row"><span class="card-name">10H</span><span class="arrow">→</span><span class="token-name">PUSH_10</span></div>
+        <div class="mapping-row"><span class="card-name">QH</span><span class="arrow">→</span><span class="token-name">PUSH_0</span></div>
+      </div>
+
+      <div class="suit-block">
+        <div class="suit-title">
+          <span class="symbol">♠</span> Spades — Arithmetic
+        </div>
+        <div class="mapping-row"><span class="card-name">AS</span><span class="arrow">→</span><span class="token-name">ADD</span></div>
+        <div class="mapping-row"><span class="card-name">2S</span><span class="arrow">→</span><span class="token-name">SUB</span></div>
+        <div class="mapping-row"><span class="card-name">3S</span><span class="arrow">→</span><span class="token-name">MUL</span></div>
+        <div class="mapping-row"><span class="card-name">4S</span><span class="arrow">→</span><span class="token-name">MOD</span></div>
+        <div class="mapping-row"><span class="card-name">5S</span><span class="arrow">→</span><span class="token-name">EQ</span></div>
+        <div class="mapping-row"><span class="card-name">6S</span><span class="arrow">→</span><span class="token-name">AND</span></div>
+        <div class="mapping-row"><span class="card-name">7S</span><span class="arrow">→</span><span class="token-name">NOT</span></div>
+        <div class="mapping-row"><span class="card-name">8S</span><span class="arrow">→</span><span class="token-name">DUP</span></div>
+        <div class="mapping-row"><span class="card-name">9S</span><span class="arrow">→</span><span class="token-name">SWAP</span></div>
+        <div class="mapping-row"><span class="card-name">10S</span><span class="arrow">→</span><span class="token-name">POP</span></div>
+      </div>
+
+      <div class="suit-block">
+        <div class="suit-title red">
+          <span class="symbol">♦</span> Diamonds — Control Flow
+        </div>
+        <div class="mapping-row"><span class="card-name">AD</span><span class="arrow">→</span><span class="token-name">FOR</span></div>
+        <div class="mapping-row"><span class="card-name">2D</span><span class="arrow">→</span><span class="token-name">LOAD_CTR</span></div>
+        <div class="mapping-row"><span class="card-name">3D</span><span class="arrow">→</span><span class="token-name">IF</span></div>
+        <div class="mapping-row"><span class="card-name">4D</span><span class="arrow">→</span><span class="token-name">ELSE</span></div>
+        <div class="mapping-row"><span class="card-name">5D</span><span class="arrow">→</span><span class="token-name">END</span></div>
+      </div>
+
+      <div class="suit-block">
+        <div class="suit-title">
+          <span class="symbol">♣</span> Clubs — Registers
+        </div>
+        <div class="mapping-row"><span class="card-name">AC</span><span class="arrow">→</span><span class="token-name">STORE_A</span></div>
+        <div class="mapping-row"><span class="card-name">2C</span><span class="arrow">→</span><span class="token-name">STORE_B</span></div>
+        <div class="mapping-row"><span class="card-name">3C</span><span class="arrow">→</span><span class="token-name">LOAD_A</span></div>
+        <div class="mapping-row"><span class="card-name">4C</span><span class="arrow">→</span><span class="token-name">LOAD_B</span></div>
+        <div class="mapping-row"><span class="card-name">5C</span><span class="arrow">→</span><span class="token-name">STORE_STR_A</span></div>
+        <div class="mapping-row"><span class="card-name">6C</span><span class="arrow">→</span><span class="token-name">STORE_STR_B</span></div>
+        <div class="mapping-row"><span class="card-name">7C</span><span class="arrow">→</span><span class="token-name">LOAD_STR_A</span></div>
+        <div class="mapping-row"><span class="card-name">8C</span><span class="arrow">→</span><span class="token-name">LOAD_STR_B</span></div>
+      </div>
+
+    </div>
+
+    <h3>Face cards — String operations</h3>
+    <pre><code>JH  →  CHAR        (pop integer, push ASCII character)
+JS  →  CONCAT      (pop two strings, push joined string)
+JD  →  NUM_TO_STR  (pop integer, push as string)
+JC  →  PRINT_STR   (pop string, print it)
+QC  →  PRINT_NUM   (pop integer, print it)</code></pre>
+
+    <div class="screenshot">
+      <img src="images/card_map.png" alt="Visual card map"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div class="screenshot-placeholder" style="display:none">
+        <div class="icon">🗺</div>
+        <div>card_map.png</div>
+      </div>
+      <div class="screenshot-caption">Full card-to-token reference sheet.</div>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- ── How numbers work ── -->
+  <section class="section" id="numbers">
+    <h2><span class="num">04 —</span> How Numbers Work</h2>
+    <p>
+      There are no numeric literals beyond 1–10. Every larger number is
+      <em>constructed</em> by pushing heart cards and combining them with
+      arithmetic. This makes number-building feel like actual card play.
+    </p>
+
+    <pre><code># The number 100
+10H 10H 3S          →  push 10, push 10, MUL  =  100
+
+# The number 70  (ASCII 'F')
+10H 7H 3S           →  10 × 7  =  70
+
+# The number 122  (ASCII 'z')
+10H 10H AS 6H 3S 2H AS   →  (10+10) × 6 + 2  =  122</code></pre>
+
+    <p>
+      String building works the same way — construct the ASCII value,
+      call <code>JH</code> (<code>CHAR</code>) to convert it to a character,
+      then concatenate with <code>JS</code>.
+    </p>
+  </section>
+
+  <hr>
+
+  <!-- ── .card format ── -->
+  <section class="section" id="format">
+    <h2><span class="num">05 —</span> The <code>.card</code> File</h2>
+    <p>
+      Programs are saved as <code>.card</code> files. Each line of the file
+      corresponds to one row of physical cards, written in shorthand notation.
+      Comments start with <code>#</code>. The generated Python and output are
+      appended as comments so the file is both human-readable and fully
+      re-runnable.
+    </p>
+
+    <div class="program-label">Example: programs/fizz.card</div>
+    <pre><code># CardCode Program
+# Generated: 2025-05-05T14:32:07
+# Lines: 5  Tokens: 25
+
+10H 7H 3S JH
+10H 10H 3S 5H AS JH
+10H 10H AS 6H 3S 2H AS JH
+8S JS JS JS 5C
+7C JC
+
+# ── Generated Python ─────────────────────────────────
+# _str_a = (chr((10 * 7)) + (chr(((10 * 10) + 5)) + ...))
+# print(_str_a)
+
+# ── Output ───────────────────────────────────────────
+# Fizz</code></pre>
+
+    <p>Re-run any saved program from the command line:</p>
+    <pre><code>python run.py programs/fizz.card</code></pre>
+  </section>
+
+  <hr>
+
+  <!-- ── FizzBuzz ── -->
+  <section class="section" id="fizzbuzz">
+    <h2><span class="num">06 —</span> FizzBuzz</h2>
+    <p>
+      The canonical CardCode challenge. Lay out 25 rows of cards — the first
+      eight build "Fizz" and "Buzz" from ASCII, the remainder implement the
+      loop and conditional logic.
+    </p>
+
+    <div class="screenshot">
+      <img src="images/fizzbuzz_cards.png" alt="FizzBuzz card layout"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div class="screenshot-placeholder" style="display:none">
+        <div class="icon">♥♠♦♣</div>
+        <div>fizzbuzz_cards.png</div>
+      </div>
+      <div class="screenshot-caption">The full FizzBuzz program laid out as physical cards.</div>
+    </div>
+
+    <pre><code># Build "Fizz" → stored in Str register A
+10H 7H 3S JH
+10H 10H 3S 5H AS JH
+10H 10H AS 6H 3S 2H AS JH
+8S JS JS JS 5C
+
+# Build "Buzz" → stored in Str register B
+10H 6H 3S 6H AS JH
+10H 10H 3S 10H AS 7H AS JH
+10H 10H AS 6H 3S 2H AS JH
+8S JS JS JS 6C
+
+# Loop 1..100
+10H 10H 3S AD
+
+# FizzBuzz: (ctr%3==0) AND (ctr%5==0)
+2D 3H 4S QH 5S 2D 5H 4S QH 5S 6S 3D
+7C 8C JS JC
+4D
+# Fizz: ctr%3==0
+2D 3H 4S QH 5S 3D
+7C JC
+4D
+# Buzz: ctr%5==0
+2D 5H 4S QH 5S 3D
+8C JC
+4D
+# Else: print number
+2D JD JC
+5D 5D 5D 5D</code></pre>
+  </section>
+
+  <hr>
+
+  <blockquote>
+    "The suits are the syntax.<br>The deck is the program.<br>The table is the IDE."
+  </blockquote>
+
+  <a class="btn primary" href="https://github.com/YOUR_USERNAME/cardcode">
+    ♠ View on GitHub
+  </a>
+
+  <!-- ── Footer ── -->
+  <footer>
+    <span>CardCode — a card-based esolang</span>
+    <span>
+      <a href="https://github.com/YOUR_USERNAME/cardcode">github</a>
+    </span>
+  </footer>
+
+</div>
+</body>
+</html>
